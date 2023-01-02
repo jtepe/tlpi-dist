@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* ns_child_exec.c
 
@@ -26,6 +26,11 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdio.h>
+#include <sys/mman.h>
+
+#ifndef CLONE_NEWCGROUP         /* Added in Linux 4.6 */
+#define CLONE_NEWCGROUP         0x02000000
+#endif
 
 /* A simple error-handling function: print an error message based
    on the value in 'errno' and terminate the calling process */
@@ -38,6 +43,7 @@ usage(char *pname)
 {
     fprintf(stderr, "Usage: %s [options] cmd [arg...]\n", pname);
     fprintf(stderr, "Options can be:\n");
+    fprintf(stderr, "    -C   new cgroup namespace\n");
     fprintf(stderr, "    -i   new IPC namespace\n");
     fprintf(stderr, "    -m   new mount namespace\n");
     fprintf(stderr, "    -n   new network namespace\n");
@@ -53,22 +59,18 @@ childFunc(void *arg)
 {
     char **argv = arg;
 
-    execvp(argv[0], &argv[0]);
+    execvp(argv[0], argv);
     errExit("execvp");
 }
 
 #define STACK_SIZE (1024 * 1024)
 
-static char child_stack[STACK_SIZE];    /* Space for child's stack */
-
 int
 main(int argc, char *argv[])
 {
-    int flags, opt, verbose;
-    pid_t child_pid;
 
-    flags = 0;
-    verbose = 0;
+    int flags = 0;
+    int verbose = 0;
 
     /* Parse command-line options. The initial '+' character in
        the final getopt() argument prevents GNU-style permutation
@@ -77,8 +79,10 @@ main(int argc, char *argv[])
        has command-line options. We don't want getopt() to treat
        those as options to this program. */
 
-    while ((opt = getopt(argc, argv, "+imnpuUv")) != -1) {
+    int opt;
+    while ((opt = getopt(argc, argv, "+CimnpuUv")) != -1) {
         switch (opt) {
+        case 'C': flags |= CLONE_NEWCGROUP;     break;
         case 'i': flags |= CLONE_NEWIPC;        break;
         case 'm': flags |= CLONE_NEWNS;         break;
         case 'n': flags |= CLONE_NEWNET;        break;
@@ -93,15 +97,22 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usage(argv[0]);
 
-    child_pid = clone(childFunc,
-                    child_stack + STACK_SIZE,
-                    flags | SIGCHLD, &argv[optind]);
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED)
+        errExit("mmap");
+
+    pid_t child_pid = clone(childFunc,
+                            stack + STACK_SIZE,
+                            flags | SIGCHLD, &argv[optind]);
     if (child_pid == -1)
         errExit("clone");
 
     if (verbose)
         printf("%s: PID of child created by clone() is %ld\n",
                 argv[0], (long) child_pid);
+
+    munmap(stack, STACK_SIZE);
 
     /* Parent falls through to here */
 

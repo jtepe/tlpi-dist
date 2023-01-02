@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* simple_init.c
 
@@ -34,7 +34,7 @@
 
 static int verbose = 0;
 
-/* Display wait status (from waitpid() or similar) given in 'status' */
+/* Display wait status (from waitpid() or similar) given in 'wstatus' */
 
 /* SIGCHLD handler: reap child processes as they change state */
 
@@ -42,12 +42,12 @@ static void
 child_handler(int sig)
 {
     pid_t pid;
-    int status;
+    int wstatus;
 
     /* WUNTRACED and WCONTINUED allow waitpid() to catch stopped and
        continued children (in addition to terminated children) */
 
-    while ((pid = waitpid(-1, &status,
+    while ((pid = waitpid(-1, &wstatus,
                           WNOHANG | WUNTRACED | WCONTINUED)) != 0) {
         if (pid == -1) {
             if (errno == ECHILD)        /* No more children */
@@ -68,11 +68,9 @@ child_handler(int sig)
 static char **
 expand_words(char *cmd)
 {
-    char **arg_vec;
-    int s;
     wordexp_t pwordexp;
 
-    s = wordexp(cmd, &pwordexp, 0);
+    int s = wordexp(cmd, &pwordexp, 0);
     if (s != 0) {
         fprintf(stderr, "Word expansion failed.\n"
                         "\tNote that only simple "
@@ -81,12 +79,12 @@ expand_words(char *cmd)
         return NULL;
     }
 
-    arg_vec = calloc(pwordexp.we_wordc + 1, sizeof(char *));
+    char **arg_vec = calloc(pwordexp.we_wordc + 1, sizeof(char *));
     if (arg_vec == NULL)
         errExit("calloc");
 
-    for (s = 0; s < pwordexp.we_wordc; s++)
-        arg_vec[s] = pwordexp.we_wordv[s];
+    for (int j = 0; j < pwordexp.we_wordc; j++)
+        arg_vec[j] = pwordexp.we_wordv[j];
 
     arg_vec[pwordexp.we_wordc] = NULL;
 
@@ -106,14 +104,8 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    struct sigaction sa;
-#define CMD_SIZE 10000
-    char cmd[CMD_SIZE];
-    pid_t pid;
+    char *proc_path = NULL;
     int opt;
-    char *proc_path;
-
-    proc_path = NULL;
     while ((opt = getopt(argc, argv, "p:v")) != -1) {
         switch (opt) {
         case 'p': proc_path = optarg;   break;
@@ -122,6 +114,7 @@ main(int argc, char *argv[])
         }
     }
 
+    struct sigaction sa;
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = child_handler;
@@ -156,7 +149,7 @@ main(int argc, char *argv[])
            propagate to other namespaces. If we were mounting the
            procfs for this new PID namespace at "/proc" (which is typical),
            then this would hide the original "/proc" mount point in the
-           intial namespace, which we probably don't want, since it will
+           initial namespace, which we probably don't want, since it will
            confuse a lot of system tools. To prevent propagation from
            occurring, we need to mark the mount point either as a slave
            mount or as a private mount.
@@ -193,6 +186,9 @@ main(int argc, char *argv[])
 
         /* Read a shell command; exit on end of file */
 
+#define CMD_SIZE 10000
+        char cmd[CMD_SIZE];
+
         printf("init$ ");
         if (fgets(cmd, CMD_SIZE, stdin) == NULL) {
             if (verbose)
@@ -207,7 +203,7 @@ main(int argc, char *argv[])
         if (strlen(cmd) == 0)
             continue;           /* Ignore empty commands */
 
-        pid = fork();           /* Create child process */
+        pid_t pid = fork();             /* Create child process */
         if (pid == -1) {
             perror("fork");
             break;

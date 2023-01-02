@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -18,7 +18,6 @@
    See also us_xfr_cl.c.
 */
 #include "us_xfr.h"
-
 #define BACKLOG 5
 
 int
@@ -35,6 +34,12 @@ main(int argc, char *argv[])
 
     /* Construct server socket address, bind socket to it,
        and make this a listening socket */
+
+    /* For an explanation of the following check, see the errata notes for
+       pages 1168 and 1172 at http://www.man7.org/tlpi/errata/. */
+
+    if (strlen(SV_SOCK_PATH) > sizeof(addr.sun_path) - 1)
+        fatal("Server socket path too long: %s", SV_SOCK_PATH);
 
     if (remove(SV_SOCK_PATH) == -1 && errno != ENOENT)
         errExit("remove-%s", SV_SOCK_PATH);

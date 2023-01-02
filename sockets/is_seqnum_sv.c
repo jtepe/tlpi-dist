@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -51,8 +51,7 @@ main(int argc, char *argv[])
     /* Ignore the SIGPIPE signal, so that we find out about broken connection
        errors via a failure from write(). */
 
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-        errExit("signal");
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    errExit("signal");
 
     /* Call getaddrinfo() to obtain a list of addresses that
        we can try binding to */
@@ -130,7 +129,7 @@ main(int argc, char *argv[])
         }
 
         snprintf(seqNumStr, INT_LEN, "%d\n", seqNum);
-        if (write(cfd, &seqNumStr, strlen(seqNumStr)) != strlen(seqNumStr))
+        if (write(cfd, seqNumStr, strlen(seqNumStr)) != strlen(seqNumStr))
             fprintf(stderr, "Error on write");
 
         seqNum += reqLen;               /* Update sequence number */

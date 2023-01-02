@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* multi_pidns.c
 
@@ -28,6 +28,7 @@
 #include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 /* A simple error-handling function: print an error message based
    on the value in 'errno' and terminate the calling process */
@@ -36,10 +37,6 @@
                         } while (0)
 
 #define STACK_SIZE (1024 * 1024)
-
-static char child_stack[STACK_SIZE];    /* Space for child's stack */
-                /* Since each child gets a copy of virtual memory, this
-                   buffer can be reused as each child creates its child */
 
 /* Recursively create a series of child process in nested PID namespaces.
    'arg' is an integer that counts down to 0 during the recursion.
@@ -78,17 +75,25 @@ childFunc(void *arg)
         level--;
         pid_t child_pid;
 
+        char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+        if (stack == MAP_FAILED)
+            errExit("mmap");
+
         child_pid = clone(childFunc,
-                    child_stack + STACK_SIZE,   /* Points to start of
-                                                   downwardly growing stack */
-                    CLONE_NEWPID | SIGCHLD, (void *) level);
+                          stack + STACK_SIZE, /* Assume stack grows downward */
+                          CLONE_NEWPID | SIGCHLD, (void *) level);
 
         if (child_pid == -1)
             errExit("clone");
 
+        munmap(stack, STACK_SIZE);
+
         if (waitpid(child_pid, NULL, 0) == -1)  /* Wait for child */
             errExit("waitpid");
 
+        if (munmap(stack, STACK_SIZE) == -1)
+            errExit("munmap");
     } else {
 
         /* Tail end of recursion: execute sleep(1) */
@@ -104,9 +109,7 @@ childFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    long levels;
-
-    levels = (argc > 1) ? atoi(argv[1]) : 5;
+    long levels = (argc > 1) ? atoi(argv[1]) : 5;
     childFunc((void *) levels);
 
     exit(EXIT_SUCCESS);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,11 +8,15 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
+/* Supplementary program for Chapter 41 */
+
 /* foo3.c
 
 */
 #include <stdlib.h>
 #include <stdio.h>
+
+void abc(void);
 
 void
 xyz(void)

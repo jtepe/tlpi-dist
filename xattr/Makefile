@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-GEN_EXE = 
+GEN_EXE =
 
 LINUX_EXE = t_setxattr xattr_view
 
@@ -10,10 +10,10 @@ all : ${EXE}
 
 allgen : ${GEN_EXE}
 
-clean : 
+clean :
 	${RM} ${EXE} *.o
 
 showall :
 	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+${EXE} : ${TLPI_LIB}		# True as a rough approximation

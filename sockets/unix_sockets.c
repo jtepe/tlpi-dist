@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -23,8 +23,7 @@
 int
 unixBuildAddress(const char *path, struct sockaddr_un *addr)
 {
-    if (addr == NULL || path == NULL ||
-            strlen(path) >= sizeof(addr->sun_path) - 1) {
+    if (addr == NULL || path == NULL) {
         errno = EINVAL;
         return -1;
     }
@@ -47,19 +46,18 @@ unixBuildAddress(const char *path, struct sockaddr_un *addr)
 int
 unixConnect(const char *path, int type)
 {
-    int sd, savedErrno;
     struct sockaddr_un addr;
 
     if (unixBuildAddress(path, &addr) == -1)
         return -1;
 
-    sd = socket(AF_UNIX, type, 0);
+    int sd = socket(AF_UNIX, type, 0);
     if (sd == -1)
         return -1;
 
     if (connect(sd, (struct sockaddr *) &addr,
                 sizeof(struct sockaddr_un)) == -1) {
-        savedErrno = errno;
+        int savedErrno = errno;
         close(sd);                      /* Might change 'errno' */
         errno = savedErrno;
         return -1;
@@ -68,57 +66,27 @@ unixConnect(const char *path, int type)
     return sd;
 }
 
-/* Create a UNIX domain socket and bind it to 'path'. If 'doListen'
-   is true, then call listen() with specified 'backlog'.
+/* Create a UNIX domain socket and bind it to 'path'.
    Return the socket descriptor on success, or -1 on error. */
 
-static int              /* Public interfaces: unixBind() and unixListen() */
-unixPassiveSocket(const char *path, int type, Boolean doListen, int backlog)
+int
+unixBind(const char *path, int type)
 {
-    int sd, savedErrno;
     struct sockaddr_un addr;
 
     if (unixBuildAddress(path, &addr) == -1)
         return -1;
 
-    sd = socket(AF_UNIX, type, 0);
+    int sd = socket(AF_UNIX, type, 0);
     if (sd == -1)
         return -1;
 
     if (bind(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) == -1) {
-        savedErrno = errno;
+        int savedErrno = errno;
         close(sd);                      /* Might change 'errno' */
         errno = savedErrno;
         return -1;
     }
 
-    if (doListen) {
-        if (listen(sd, backlog) == -1) {
-            savedErrno = errno;
-            close(sd);                  /* Might change 'errno' */
-            errno = savedErrno;
-            return -1;
-        }
-    }
-
     return sd;
-}
-
-/* Create stream socket, bound to 'path'. Make the socket a listening
-  socket, with the specified 'backlog'. Return socket descriptor on
-  success, or -1 on error. */
-
-int
-unixListen(const char *path, int backlog)
-{
-    return unixPassiveSocket(path, SOCK_STREAM, TRUE, backlog);
-}
-
-/* Create socket of type 'type' bound to 'path'.
-   Return socket descriptor on success, or -1 on error. */
-
-int
-unixBind(const char *path, int type)
-{
-    return unixPassiveSocket(path, type, FALSE, 0);
 }

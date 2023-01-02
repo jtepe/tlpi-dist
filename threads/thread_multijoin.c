@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -84,7 +84,7 @@ main(int argc, char *argv[])
     int s, idx;
 
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
-        usageErr("%s nsecs...\n", argv[0]);
+        usageErr("%s num-secs...\n", argv[0]);
 
     thread = calloc(argc - 1, sizeof(*thread));
     if (thread == NULL)

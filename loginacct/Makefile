@@ -1,8 +1,8 @@
 include ../Makefile.inc
 
-GEN_EXE = 
+GEN_EXE =
 
-LINUX_EXE = dump_utmpx utmpx_login view_lastlog 
+LINUX_EXE = dump_utmpx utmpx_login view_lastlog
 
 EXE = ${GEN_EXE} ${LINUX_EXE}
 
@@ -10,10 +10,10 @@ all : ${EXE}
 
 allgen : ${GEN_EXE}
 
-clean : 
+clean :
 	${RM} ${EXE} *.o
 
 showall :
 	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+${EXE} : ${TLPI_LIB}		# True as a rough approximation

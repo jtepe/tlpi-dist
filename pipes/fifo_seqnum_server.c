@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -58,8 +58,7 @@ main(int argc, char *argv[])
 
     /* Let's find out about broken client pipe via failed write() */
 
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-        errExit("signal");
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    errExit("signal");
 
     for (;;) {                          /* Read requests and send responses */
         if (read(serverFd, &req, sizeof(struct request))

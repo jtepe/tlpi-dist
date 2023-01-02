@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -19,6 +19,11 @@
 
 #define printable(ch) (isprint((unsigned char) ch) ? ch : '#')
 
+#ifdef __GNUC__
+__attribute__((noreturn))       /* Prevent "this statement may fall through"
+                                   warnings from "gcc -Wimplicit-fallthrough"
+                                   in switch() statement in main(). */
+#endif
 static void             /* Print "usage" message and exit */
 usageError(char *progName, char *msg, int opt)
 {

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -33,21 +33,22 @@
    small "inner loop" value), spin locks are likely to be better.
 */
 #include <pthread.h>
+#include <stdbool.h>
 #include "tlpi_hdr.h"
 
 static volatile int glob = 0;
 static pthread_spinlock_t splock;
 static pthread_mutex_t mtx;
-static int useMutex = 0;
+static bool useMutex;
 static int numOuterLoops;
 static int numInnerLoops;
 
 static void *
 threadFunc(void *arg)
 {
-    int j, k, s;
+    int s;
 
-    for (j = 0; j < numOuterLoops; j++) {
+    for (int j = 0; j < numOuterLoops; j++) {
         if (useMutex) {
             s = pthread_mutex_lock(&mtx);
             if (s != 0)
@@ -58,7 +59,7 @@ threadFunc(void *arg)
                 errExitEN(s, "pthread_spin_lock");
         }
 
-        for (k = 0; k < numInnerLoops; k++)
+        for (int k = 0; k < numInnerLoops; k++)
             glob++;
 
         if (useMutex) {
@@ -82,6 +83,8 @@ usageError(char *pname)
             "Usage: %s [-s] num-threads "
             "[num-inner-loops [num-outer-loops]]\n", pname);
     fprintf(stderr,
+            "    -q   Don't print verbose messages\n");
+    fprintf(stderr,
             "    -s   Use spin locks (instead of the default mutexes)\n");
     exit(EXIT_FAILURE);
 }
@@ -89,15 +92,20 @@ usageError(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int opt, s, j;
-    int numThreads;
-    pthread_t *thread;
+    /* Prevent runaway/forgotten process from burning up CPU time forever */
 
-    useMutex = 1;
-    while ((opt = getopt(argc, argv, "s")) != -1) {
+    alarm(120);         /* Unhandled SIGALRM will kill process */
+
+    useMutex = true;
+    bool verbose = true;
+    int opt;
+    while ((opt = getopt(argc, argv, "qs")) != -1) {
         switch (opt) {
+        case 'q':
+            verbose = false;
+            break;
         case 's':
-            useMutex = 0;
+            useMutex = false;
             break;
         default:
             usageError(argv[0]);
@@ -107,17 +115,21 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usageError(argv[0]);
 
-    numThreads = atoi(argv[optind]);
+    int numThreads = atoi(argv[optind]);
     numInnerLoops = (optind + 1 < argc) ? atoi(argv[optind + 1]) : 1;
     numOuterLoops = (optind + 2 < argc) ? atoi(argv[optind + 2]) : 10000000;
 
-    printf("Using %s\n", useMutex ? "mutexes" : "spin locks");
-    printf("\tthreads: %d; outer loops: %d; inner loops: %d\n",
-            numThreads, numOuterLoops, numInnerLoops);
+    if (verbose) {
+        printf("Using %s\n", useMutex ? "mutexes" : "spin locks");
+        printf("\tthreads: %d; outer loops: %d; inner loops: %d\n",
+                numThreads, numOuterLoops, numInnerLoops);
+    }
 
-    thread = calloc(numThreads, sizeof(pthread_t));
+    pthread_t *thread = calloc(numThreads, sizeof(pthread_t));
     if (thread == NULL)
         errExit("calloc");
+
+    int s;
 
     if (useMutex) {
         s = pthread_mutex_init(&mtx, NULL);
@@ -129,18 +141,19 @@ main(int argc, char *argv[])
             errExitEN(s, "pthread_spin_init");
     }
 
-    for (j = 0; j < numThreads; j++) {
+    for (int j = 0; j < numThreads; j++) {
         s = pthread_create(&thread[j], NULL, threadFunc, NULL);
         if (s != 0)
             errExitEN(s, "pthread_create");
     }
 
-    for (j = 0; j < numThreads; j++) {
+    for (int j = 0; j < numThreads; j++) {
         s = pthread_join(thread[j], NULL);
         if (s != 0)
             errExitEN(s, "pthread_join");
     }
 
-    printf("glob = %d\n", glob);
+    if (verbose)
+        printf("glob = %d\n", glob);
     exit(EXIT_SUCCESS);
 }

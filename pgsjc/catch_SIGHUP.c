@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 
     alarm(60);                  /* An unhandled SIGALRM ensures this process
                                    will die if nothing else terminates it */
-    for(;;) {                   /* Wait for signals */
+    for (;;) {                  /* Wait for signals */
         pause();
         printf("%ld: caught SIGHUP\n", (long) getpid());
     }

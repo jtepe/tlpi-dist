@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -37,7 +37,7 @@ main(int argc, char *argv[])
 
     /* addr.sun_path[0] has already been set to 0 by memset() */
 
-    str = "xyz";        /* Abstract name is "\0abc" */
+    str = "xyz";        /* Abstract name is "\0xyz" */
     strncpy(&addr.sun_path[1], str, strlen(str));
 
     // In early printings of the book, the above two lines were instead:

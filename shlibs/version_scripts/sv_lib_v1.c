@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,9 +8,11 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
+/* Supplementary program for Chapter 42 */
+
 /* sv_lib_v1.c
 
 */
 #include <stdio.h>
 
-void xyz(void) { printf("v1 xyz()\n"); }
+void xyz(void) { printf("v1 xyz\n"); }

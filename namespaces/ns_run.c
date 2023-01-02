@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* ns_run.c
 
@@ -48,9 +48,6 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int fd, opt, do_fork;
-    pid_t pid;
-
     /* Parse command-line options. The initial '+' character in
        the final getopt() argument prevents GNU-style permutation
        of command-line options. That's useful, since sometimes
@@ -58,17 +55,23 @@ main(int argc, char *argv[])
        has command-line options. We don't want getopt() to treat
        those as options to this program. */
 
-    do_fork = 0;
+    int do_fork = 0;
+    int opt;
+    int fd;
     while ((opt = getopt(argc, argv, "+fn:")) != -1) {
         switch (opt) {
 
         case 'n':       /* Join a namespace */
-            fd = open(optarg, O_RDONLY); /* Get descriptor for namespace */
+
+            fd = open(optarg, O_RDONLY | O_CLOEXEC);  /* Get FD for namespace */
             if (fd == -1)
                 errExit("open");
 
             if (setns(fd, 0) == -1)      /* Join that namespace */
                 errExit("setns");
+
+            close(fd);
+
             break;
 
         case 'f':
@@ -90,12 +93,12 @@ main(int argc, char *argv[])
        does not affect the PID namespace membership of the caller. */
 
     if (do_fork) {
-        pid = fork();
+        pid_t pid = fork();
         if (pid == -1)
             errExit("fork");
 
         if (pid != 0) {                 /* Parent */
-            if (waitpid(-1, NULL, 0) == -1)     /* Wait for child */
+            if (waitpid(pid, NULL, 0) == -1)    /* Wait for child */
                 errExit("waitpid");
             exit(EXIT_SUCCESS);
         }

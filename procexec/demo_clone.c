@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -30,6 +30,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <sched.h>
+#include <sys/mman.h>
 #include "print_wait_status.h"
 #include "tlpi_hdr.h"
 
@@ -48,11 +49,9 @@ typedef struct {        /* For passing info to child startup function */
 static int              /* Startup function for cloned child */
 childFunc(void *arg)
 {
-    ChildParams *cp;
-
     printf("Child:  PID=%ld PPID=%ld\n", (long) getpid(), (long) getppid());
 
-    cp = (ChildParams *) arg;   /* Cast arg to true form */
+    ChildParams *cp = arg;
 
     /* The following changes may affect parent */
 
@@ -68,12 +67,10 @@ childFunc(void *arg)
 static void             /* Handler for child termination signal */
 grimReaper(int sig)
 {
-    int savedErrno;
-
     /* UNSAFE: This handler uses non-async-signal-safe functions
        (printf(), strsignal(); see Section 21.1.2) */
 
-    savedErrno = errno;         /* In case we change 'errno' here */
+    int savedErrno = errno;             /* In case we change 'errno' here */
 
     printf("Caught signal %d (%s)\n", sig, strsignal(sig));
 
@@ -96,26 +93,16 @@ usageError(char *progName)
 int
 main(int argc, char *argv[])
 {
-    const int STACK_SIZE = 65536;       /* Stack size for cloned child */
-    char *stack;                        /* Start of stack buffer area */
-    char *stackTop;                     /* End of stack buffer area */
-    int flags;                          /* Flags for cloning child */
-    ChildParams cp;                     /* Passed to child function */
-    const mode_t START_UMASK = S_IWOTH; /* Initial umask setting */
-    struct sigaction sa;
-    char *p;
-    int status;
-    ssize_t s;
-    pid_t pid;
-
     printf("Parent: PID=%ld PPID=%ld\n", (long) getpid(), (long) getppid());
 
     /* Set up an argument structure to be passed to cloned child, and
        set some process attributes that will be modified by child */
 
+    ChildParams cp;                     /* Passed to child function */
     cp.exitStatus = 22;                 /* Child will exit with this status */
 
-    umask(START_UMASK);                 /* Initialize umask to some value */
+    const mode_t START_UMASK = S_IWOTH; /* Initial umask setting */
+    umask(START_UMASK);
     cp.umask = S_IWGRP;                 /* Child sets umask to this value */
 
     cp.fd = open("/dev/null", O_RDWR);  /* Child will close this fd */
@@ -123,14 +110,13 @@ main(int argc, char *argv[])
         errExit("open");
 
     cp.signal = SIGTERM;                /* Child will change disposition */
-    if (signal(cp.signal, SIG_IGN) == SIG_ERR)
-        errExit("signal");
+    if (signal(cp.signal, SIG_IGN) == SIG_ERR)  errExit("signal");
 
     /* Initialize clone flags using command-line argument (if supplied) */
 
-    flags = 0;
+    int flags = 0;
     if (argc > 1) {
-        for (p = argv[1]; *p != '\0'; p++) {
+        for (char *p = argv[1]; *p != '\0'; p++) {
             if      (*p == 'd') flags |= CLONE_FILES;
             else if (*p == 'f') flags |= CLONE_FS;
             else if (*p == 's') flags |= CLONE_SIGHAND;
@@ -141,13 +127,18 @@ main(int argc, char *argv[])
 
     /* Allocate stack for child */
 
-    stack = malloc(STACK_SIZE);
-    if (stack == NULL)
-        errExit("malloc");
-    stackTop = stack + STACK_SIZE;  /* Assume stack grows downward */
+    const int STACK_SIZE = 65536;
+
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED)
+        errExit("mmap");
+
+    char *stackTop = stack + STACK_SIZE;  /* Assume stack grows downward */
 
     /* Establish handler to catch child termination signal */
 
+    struct sigaction sa;
     if (CHILD_SIG != 0) {
         sigemptyset(&sa.sa_mask);
         sa.sa_flags = SA_RESTART;
@@ -161,10 +152,15 @@ main(int argc, char *argv[])
     if (clone(childFunc, stackTop, flags | CHILD_SIG, &cp) == -1)
         errExit("clone");
 
+    /* Now that child has been created, we can deallocate the stack */
+
+    munmap(stack, STACK_SIZE);
+
     /* Parent falls through to here. Wait for child; __WCLONE option is
        required for child notifying with signal other than SIGCHLD. */
 
-    pid = waitpid(-1, &status, (CHILD_SIG != SIGCHLD) ? __WCLONE : 0);
+    int status;
+    pid_t pid = waitpid(-1, &status, (CHILD_SIG != SIGCHLD) ? __WCLONE : 0);
     if (pid == -1)
         errExit("waitpid");
 
@@ -179,7 +175,7 @@ main(int argc, char *argv[])
     else
         printf("    umask has not changed\n");
 
-    s = write(cp.fd, "Hello world\n", 12);
+    ssize_t s = write(cp.fd, "Hello world\n", 12);
     if (s == -1 && errno == EBADF)
         printf("    file descriptor %d has been closed\n", cp.fd);
     else if (s == -1)

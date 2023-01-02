@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -48,19 +48,22 @@ static int                      /* Function called by nftw() */
 dirTree(const char *pathname, const struct stat *sbuf, int type,
         struct FTW *ftwb)
 {
-    switch (sbuf->st_mode & S_IFMT) {       /* Print file type */
-    case S_IFREG:  printf("-"); break;
-    case S_IFDIR:  printf("d"); break;
-    case S_IFCHR:  printf("c"); break;
-    case S_IFBLK:  printf("b"); break;
-    case S_IFLNK:  printf("l"); break;
-    case S_IFIFO:  printf("p"); break;
-    case S_IFSOCK: printf("s"); break;
-    default:       printf("?"); break;      /* Should never happen (on Linux) */
+    if (type == FTW_NS) {                  /* Could not stat() file */
+        printf("?");
+    } else {
+        switch (sbuf->st_mode & S_IFMT) {  /* Print file type */
+        case S_IFREG:  printf("-"); break;
+        case S_IFDIR:  printf("d"); break;
+        case S_IFCHR:  printf("c"); break;
+        case S_IFBLK:  printf("b"); break;
+        case S_IFLNK:  printf("l"); break;
+        case S_IFIFO:  printf("p"); break;
+        case S_IFSOCK: printf("s"); break;
+        default:       printf("?"); break; /* Should never happen (on Linux) */
+        }
     }
 
-    printf(" %s  ",
-            (type == FTW_D)  ? "D  " : (type == FTW_DNR) ? "DNR" :
+    printf(" %s  ", (type == FTW_D)  ? "D  " : (type == FTW_DNR) ? "DNR" :
             (type == FTW_DP) ? "DP " : (type == FTW_F)   ? "F  " :
             (type == FTW_SL) ? "SL " : (type == FTW_SLN) ? "SLN" :
             (type == FTW_NS) ? "NS " : "  ");

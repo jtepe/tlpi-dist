@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -58,6 +58,7 @@ listFiles(const char *dirpath)
     dirp = opendir(dirpath);
     if (dirp == NULL) {
         errMsg("opendir failed on '%s'", dirpath);
+        free(entryp);
         return;
     }
 

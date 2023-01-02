@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* pidns_init_sleep.c
 
@@ -27,6 +27,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
+#include <sys/mman.h>
 
 /* A simple error-handling function: print an error message based
    on the value in 'errno' and terminate the calling process */
@@ -55,22 +56,24 @@ childFunc(void *arg)
 
 #define STACK_SIZE (1024 * 1024)
 
-static char child_stack[STACK_SIZE];    /* Space for child's stack */
-
 int
 main(int argc, char *argv[])
 {
-    pid_t child_pid;
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED)
+        errExit("mmap");
 
-    child_pid = clone(childFunc,
-                    child_stack + STACK_SIZE,   /* Points to start of
-                                                   downwardly growing stack */
-                    CLONE_NEWPID | SIGCHLD, argv[1]);
+    pid_t child_pid = clone(childFunc,
+                        stack + STACK_SIZE,   /* Assume stack grows downward */
+                        CLONE_NEWPID | SIGCHLD, argv[1]);
 
     if (child_pid == -1)
         errExit("clone");
 
     printf("PID returned by clone(): %ld\n", (long) child_pid);
+
+    munmap(stack, STACK_SIZE);
 
     if (waitpid(child_pid, NULL, 0) == -1)      /* Wait for child */
         errExit("waitpid");

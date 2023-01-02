@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -18,8 +18,10 @@
    subdirectories underneath the pathname specified in its
    sole command-line argument.
 */
-
+#if ! defined(_XOPEN_SOURCE) || _XOPEN_SOURCE < 700
+#undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500
+#endif
 #include <stdarg.h>
 #include <limits.h>
 #include <ftw.h>
@@ -110,27 +112,12 @@ usageError(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int j;
-    char *to_move;
-    int opcnt, maxops;
-    char path[PATH_MAX];
-    char tfile[PATH_MAX];
-    char target[PATH_MAX];
-    char spath[PATH_MAX];
-    char *p;
-    int nslashes;
-    int opt;
-    int usecs;
-    char *stopFile;
-    int scnt;
-
-    opcnt = 0;
-
     srandom(0);
 
-    stopFile = NULL;
-    maxops = 0;
-    usecs = 1;
+    char *stopFile = NULL;
+    int maxops = 0;
+    int usecs = 1;
+    int opt;
     while ((opt = getopt(argc, argv, "l:m:s:z:")) != -1) {
         switch (opt) {
         case 's':
@@ -160,11 +147,14 @@ main(int argc, char *argv[])
     if (optind + 1 >= argc)
         usageError(argv[0]);
 
-    opcnt = 0;
+    int opcnt = 0;
 
     for (;;) {
-
         getDirList(argv[optind]);
+
+        int nslashes;
+        char *to_move;
+        char path[PATH_MAX];
 
         switch (argv[optind + 1][0]) {
         case 'c':
@@ -174,7 +164,7 @@ main(int argc, char *argv[])
             if (strlen(path) > DLIM)
                 continue;
             nslashes = 0;
-            for (p = path; *p; p++)
+            for (char *p = path; *p; p++)
                 if (*p == '/')
                     nslashes++;
 
@@ -185,13 +175,14 @@ main(int argc, char *argv[])
             if (mkdir(path, 0700) == 0)
                 logMessage("mkdir: %s\n", path);
 
-            scnt = 1;
+            int scnt = 1;
             while ((random() % 3) < 2) {
+                char spath[PATH_MAX];
 
-                snprintf(spath, sizeof(path), "%s/%ld%s%s%d_%d", path,
+                int s = snprintf(spath, sizeof(path), "%s/%ld%s%s%d_%d", path,
                         (long) getpid() % 100,
                         MARKER_STRING, "scr", scnt, opcnt);
-                if (strlen(spath) > DLIM)
+                if (s > DLIM)
                     break;
 
                 if (mkdir(spath, 0700) == 0)
@@ -214,7 +205,7 @@ main(int argc, char *argv[])
                     break;
                 logMessage("rmdir: %s\n", path);
 
-                p = strrchr(path, '/');
+                char *p = strrchr(path, '/');
                 if (p == NULL)
                     break;
 
@@ -229,16 +220,20 @@ main(int argc, char *argv[])
             to_move = dirList[random() % dcnt];
 
             if (strstr(to_move, MARKER_STRING) != NULL) {
-                p = strrchr(to_move, '/');
+                char tfile[PATH_MAX];
+
+                char *p = strrchr(to_move, '/');
                 snprintf(tfile, sizeof(tfile), "%s", p + 1);
                 p = strstr(tfile, "__ren");
                 if (p != NULL)
                     *p = '\0';
-                snprintf(target, sizeof(target), "%s/%s__ren%04d-%ld",
-                        dirList[random() % dcnt],
-                        tfile, opcnt, (long) getpid());
 
-                if (strlen(target) > DLIM)
+                char target[PATH_MAX];
+                int s = snprintf(target, sizeof(target), "%s/%s__ren%04d-%ld",
+                                dirList[random() % dcnt],
+                                tfile, opcnt, (long) getpid());
+
+                if (s > DLIM)
                     break;
 
                 if (rename(to_move, target) == 0)
@@ -248,7 +243,7 @@ main(int argc, char *argv[])
             break;
         }
 
-        for (j = 0; j < dcnt; j++) {
+        for (int j = 0; j < dcnt; j++) {
             free(dirList[j]);
             dirList[j] = NULL;
         }

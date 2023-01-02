@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -13,12 +13,12 @@
 /* check_password_caps.c
 
    This program provides an example of the use of capabilities to create a
-   program that performs a task that requires privilges, but operates without
+   program that performs a task that requires privileges, but operates without
    the full power of 'root'. The program reads a username and password and
    checks if they are valid by authenticating against the (shadow) password
    file.
 
-   The program executable file must be installed with the CAP_DAC_READ_SEACH
+   The program executable file must be installed with the CAP_DAC_READ_SEARCH
    permitted capability, as follows:
 
         $ sudo setcap "cap_dac_read_search=p" check_password_caps

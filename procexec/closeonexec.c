@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,13 +24,13 @@ main(int argc, char *argv[])
     int flags;
 
     if (argc > 1) {
-        flags = fcntl(STDOUT_FILENO, F_GETFD);              /* Fetch flags */
+        flags = fcntl(STDOUT_FILENO, F_GETFD);          /* Fetch flags */
         if (flags == -1)
             errExit("fcntl - F_GETFD");
 
         flags |= FD_CLOEXEC;                    /* Turn on FD_CLOEXEC */
 
-        if (fcntl(STDOUT_FILENO, F_SETFD, flags) == -1)     /* Update flags */
+        if (fcntl(STDOUT_FILENO, F_SETFD, flags) == -1) /* Update flags */
             errExit("fcntl - F_SETFD");
     }
 

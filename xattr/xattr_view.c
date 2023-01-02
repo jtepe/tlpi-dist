@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
             } else {
                 printf("value=");
                 for (k = 0; k < valueLen; k++)
-                    printf("%02x ", (unsigned int) value[k]);
+                    printf("%02x ", (unsigned char) value[k]);
             }
 
             printf("\n");

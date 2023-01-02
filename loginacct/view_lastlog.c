@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -52,8 +52,9 @@ main(int argc, char *argv[])
             continue;
         }
 
+        time_t ll_time = llog.ll_time;
         printf("%-8.8s %-6.6s %-20.20s %s", argv[j], llog.ll_line,
-                llog.ll_host, ctime((time_t *) &llog.ll_time));
+                llog.ll_host, ctime((time_t *) &ll_time));
     }
 
     close(fd);

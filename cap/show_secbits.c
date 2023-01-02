@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,18 +8,25 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* sv_libabc.c
+/* Supplementary program for Chapter 39 */
 
+/* show_secbits.c
 */
-#include <stdio.h>
+#include <sys/prctl.h>
+#include "cap_functions.h"
+#include "tlpi_hdr.h"
 
-void
-abc(void)
+int
+main(int argc, char *argv[])
 {
-    void xyz(void);
+    int secbits = prctl(PR_GET_SECUREBITS, 0, 0, 0, 0);
+    if (secbits == -1)
+        errExit("prctl");
 
-    printf("abc() calling xyz()\n");
-    xyz();
+    printf("secbits = 0x%x => ", secbits);
+
+    printSecbits(secbits, argc == 1, stdout);
+    printf("\n");
+
+    exit(EXIT_SUCCESS);
 }
-
-__asm__(".symver xyz,xyz@VER_1");

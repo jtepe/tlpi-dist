@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* unshare.c
 
@@ -24,6 +24,14 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
+#ifndef CLONE_NEWCGROUP         /* Added in Linux 4.6 */
+#define CLONE_NEWCGROUP         0x02000000
+#endif
+
+#ifndef CLONE_NEWTIME           /* Added in Linux 5.6 */
+#define CLONE_NEWTIME           0x00000080
+#endif
+
 /* A simple error-handling function: print an error message based
    on the value in 'errno' and terminate the calling process */
 
@@ -36,11 +44,13 @@ usage(char *pname)
     fprintf(stderr, "Usage: %s [options] cmd [arg...]\n", pname);
     fprintf(stderr, "Options can be:\n");
     fprintf(stderr, "    -f   fork() before executing cmd "
-            "(useful when unsharing IPC namespace)\n");
+            "(useful when unsharing PID namespace)\n");
+    fprintf(stderr, "    -C   unshare cgroup namespace\n");
     fprintf(stderr, "    -i   unshare IPC namespace\n");
     fprintf(stderr, "    -m   unshare mount namespace\n");
     fprintf(stderr, "    -n   unshare network namespace\n");
     fprintf(stderr, "    -p   unshare PID namespace\n");
+    fprintf(stderr, "    -T   unshare time namespace\n");
     fprintf(stderr, "    -u   unshare UTS namespace\n");
     fprintf(stderr, "    -U   unshare user namespace\n");
     exit(EXIT_FAILURE);
@@ -49,17 +59,18 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int flags, do_fork, opt;
-
-    flags = 0;
-    do_fork = 0;
-    while ((opt = getopt(argc, argv, "fimnpuU")) != -1) {
+    int flags = 0;
+    int do_fork = 0;
+    int opt;
+    while ((opt = getopt(argc, argv, "+CfimnpTuU")) != -1) {
         switch (opt) {
         case 'f': do_fork = 1;                  break;
+        case 'C': flags |= CLONE_NEWCGROUP;     break;
         case 'i': flags |= CLONE_NEWIPC;        break;
         case 'm': flags |= CLONE_NEWNS;         break;
         case 'n': flags |= CLONE_NEWNET;        break;
         case 'p': flags |= CLONE_NEWPID;        break;
+        case 'T': flags |= CLONE_NEWTIME;       break;
         case 'u': flags |= CLONE_NEWUTS;        break;
         case 'U': flags |= CLONE_NEWUSER;       break;
         default:  usage(argv[0]);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -63,8 +63,7 @@ main(int argc, char *argv[])
        by default), since that would prevent the creation of a zombie. */
 
     if (CHILD_SIG != 0 && CHILD_SIG != SIGCHLD)
-        if (signal(CHILD_SIG, SIG_IGN) == SIG_ERR)
-            errExit("signal");
+        if (signal(CHILD_SIG, SIG_IGN) == SIG_ERR)          errExit("signal");
 
     /* Create child; child commences execution in childFunc() */
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -33,6 +33,12 @@ main(int argc, char *argv[])
         errExit("socket");
 
     /* Construct well-known address and bind server socket to it */
+
+    /* For an explanation of the following check, see the erratum note for
+       page 1168 at http://www.man7.org/tlpi/errata/. */
+
+    if (strlen(SV_SOCK_PATH) > sizeof(svaddr.sun_path) - 1)
+        fatal("Server socket path too long: %s", SV_SOCK_PATH);
 
     if (remove(SV_SOCK_PATH) == -1 && errno != ENOENT)
         errExit("remove-%s", SV_SOCK_PATH);

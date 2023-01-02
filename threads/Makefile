@@ -2,13 +2,13 @@ include ../Makefile.inc
 
 GEN_EXE = detached_attrib one_time_init prod_condvar prod_no_condvar \
 	pthread_barrier_demo \
-	simple_thread strerror_test strerror_test_tsd \
+	simple_thread \
 	thread_cancel thread_cleanup thread_incr thread_incr_mutex \
 	thread_incr_rwlock thread_incr_spinlock \
 	thread_lock_speed \
 	thread_multijoin
 
-LINUX_EXE = strerror_test_tls
+LINUX_EXE =
 
 EXE = ${GEN_EXE} ${LINUX_EXE}
 
@@ -29,12 +29,12 @@ strerror_test_tsd: strerror_test.o strerror_tsd.o
 
 strerror_test_tls: strerror_test.o strerror_tls.o
 	${CC} -o $@ strerror_test.o strerror_tls.o \
-	    	${CFLAGS} ${LDLIBS}
+		${CFLAGS} ${LDLIBS}
 
-clean : 
+clean :
 	${RM} ${EXE} *.o
 
 showall :
 	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+${EXE} : ${TLPI_LIB}		# True as a rough approximation

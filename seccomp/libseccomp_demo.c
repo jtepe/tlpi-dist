@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* libseccomp_demo.c
 */
@@ -20,18 +20,15 @@
 
 int main(int argc, char *argv[])
 {
-    int rc;
-    scmp_filter_ctx ctx;
-
     /* Create seccomp filter state that allows by default */
 
-    ctx = seccomp_init(SCMP_ACT_ALLOW);
+    scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
     if (ctx == NULL)
         fatal("seccomp_init() failed");
 
     /* Cause clone() and fork() to fail, each with different errors */
 
-    rc = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 0);
+    int rc = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 0);
     if (rc < 0)
         errExitEN(-rc, "seccomp_rule_add");
 
@@ -45,7 +42,7 @@ int main(int argc, char *argv[])
     seccomp_export_pfc(ctx, 5);
     seccomp_export_bpf(ctx, 6);
 
-    /* Install the seccomp fileter into the kernel */
+    /* Install the seccomp filter into the kernel */
 
     rc = seccomp_load(ctx);
     if (rc < 0)

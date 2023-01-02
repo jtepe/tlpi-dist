@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -19,8 +19,7 @@
 
    The '-l' option indicates that lstat() rather than stat() should be used.
 */
-#define _BSD_SOURCE     /* Get major() and minor() from <sys/types.h> */
-#include <sys/types.h>
+#include <sys/sysmacros.h>
 #if defined(_AIX)
 #define _BSD
 #endif

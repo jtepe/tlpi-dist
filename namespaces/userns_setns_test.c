@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2015.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z-Z */
+/* Supplementary program for Chapter Z */
 
 /* userns_setns_test.c
 
@@ -31,6 +31,8 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/capability.h>
+#include <sys/mman.h>
+#include "userns_functions.h"
 
 /* A simple error-handling function: print an error message based
    on the value in 'errno' and terminate the calling process */
@@ -39,15 +41,15 @@
                         } while (0)
 
 static void
-display_creds_and_caps(char *msg)
+display_symlink(char *pname, char *link)
 {
-    cap_t caps;
+    char path[PATH_MAX];
 
-    printf("%s eUID = %ld;  eGID = %ld;  ", msg,
-            (long) geteuid(), (long) getegid());
+    ssize_t s = readlink(link, path, PATH_MAX);
+    if (s == -1)
+        errExit("readlink");
 
-    caps = cap_get_proc();
-    printf("capabilities: %s\n", cap_to_text(caps, NULL));
+    printf("%s%s ==> %.*s\n", pname, link, (int) s, path);
 }
 
 /* Try to join the user namespace identified by the file
@@ -58,23 +60,16 @@ display_creds_and_caps(char *msg)
 static void
 test_setns(char *pname, int fd)
 {
-    char path[PATH_MAX];
-    ssize_t s;
-
-    /* Display caller's user namespace ID */
-
-    s = readlink("/proc/self/ns/user", path, PATH_MAX);
-    if (s == -1)
-        errExit("readlink");
-
-    printf("%s readlink(\"/proc/self/ns/user\") ==> %s\n", pname, path);
+    display_symlink(pname, "/proc/self/ns/user");
 
     /* Attempt to join the user namespace specified by 'fd' */
 
-    if (setns(fd, CLONE_NEWUSER) == -1)
-        printf("%s setns() failed: %s\n", pname, strerror(errno));
-    else {
-        printf("%s setns() succeeded\n", pname);
+    display_creds_and_caps(pname);
+    if (setns(fd, CLONE_NEWUSER) == -1) {
+        printf("%ssetns() failed: %s\n", pname, strerror(errno));
+    } else {
+        printf("%ssetns() succeeded\n", pname);
+        display_symlink(pname, "/proc/self/ns/user");
         display_creds_and_caps(pname);
     }
 }
@@ -95,35 +90,37 @@ childFunc(void *arg)
 
 #define STACK_SIZE (1024 * 1024)
 
-static char child_stack[STACK_SIZE];    /* Space for child's stack */
-
 int
 main(int argc, char *argv[])
 {
-    pid_t child_pid;
-    long fd;
-
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s /proc/PID/ns/user]\n", argv[0]);
+        fprintf(stderr, "Usage: %s /proc/PID/ns/user\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     /* Open user namespace file specified on command line */
 
-    fd = open(argv[1], O_RDONLY);
+    long fd = open(argv[1], O_RDONLY);
     if (fd == -1)
         errExit("open");
 
     /* Create child process in new user namespace */
 
-    child_pid = clone(childFunc, child_stack + STACK_SIZE,
-                      CLONE_NEWUSER | SIGCHLD, (void *) fd);
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED)
+        errExit("mmap");
+
+    pid_t child_pid = clone(childFunc, stack + STACK_SIZE,
+                            CLONE_NEWUSER | SIGCHLD, (void *) fd);
     if (child_pid == -1)
         errExit("clone");
 
+    munmap(stack, STACK_SIZE);
+
     /* Test whether setns() is possible from the parent user namespace */
 
-    test_setns("parent:", fd);
+    test_setns("parent: ", fd);
     printf("\n");
 
     if (waitpid(child_pid, NULL, 0) == -1)      /* Wait for child */

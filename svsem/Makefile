@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-GEN_EXE = svsem_create svsem_demo svsem_mon svsem_op svsem_rm svsem_setall 
+GEN_EXE = svsem_create svsem_demo svsem_mon svsem_op svsem_rm svsem_setall
 
 LINUX_EXE = svsem_info
 
@@ -10,10 +10,10 @@ all : ${EXE}
 
 allgen : ${GEN_EXE}
 
-clean : 
+clean :
 	${RM} ${EXE} *.o
 
 showall :
 	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+${EXE} : ${TLPI_LIB}		# True as a rough approximation

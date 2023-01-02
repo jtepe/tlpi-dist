@@ -1,7 +1,7 @@
 include ../Makefile.inc
 
 GEN_EXE = svshm_attach svshm_create svshm_mon svshm_rm \
-	svshm_xfr_reader svshm_xfr_writer 
+	svshm_xfr_reader svshm_xfr_writer
 
 LINUX_EXE = svshm_info svshm_lock svshm_unlock
 
@@ -11,7 +11,9 @@ all : ${EXE}
 
 allgen : ${GEN_EXE}
 
-clean : 
+LDLIBS = ${IMPL_LDLIBS} ${IMPL_THREAD_FLAGS}
+
+clean :
 	${RM} ${EXE} *.o
 
 svshm_xfr_reader.o svshm_xfr_writer.o: svshm_xfr.h
@@ -19,4 +21,4 @@ svshm_xfr_reader.o svshm_xfr_writer.o: svshm_xfr.h
 showall :
 	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+${EXE} : ${TLPI_LIB}		# True as a rough approximation
